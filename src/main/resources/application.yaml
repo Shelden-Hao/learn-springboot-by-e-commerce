@@ -2,34 +2,36 @@ spring:
   application:
     name: demo
 
-  # ========== 数据源配置 ==========
+  # ========== 数据源 — Docker MySQL ==========
   datasource:
-    url: jdbc:h2:mem:demo_db;MODE=MySQL;DATABASE_TO_LOWER=TRUE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: jdbc:mysql://localhost:3306/demo_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai&characterEncoding=UTF-8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: demo_user
+    password: demo_pass
 
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-  # schema.sql / data.sql 自动执行（建表 + 初始化数据）
+  # 启动时自动执行 schema.sql 建表
   sql:
     init:
       mode: always
 
-# ========== MyBatis-Plus 配置 ==========
+# ========== MyBatis-Plus ==========
 mybatis-plus:
-  # XML 映射文件路径：告诉 MyBatis 去哪里找 OrderMapper.xml
   mapper-locations: classpath:mapper/**/*.xml
   configuration:
-    # 控制台打印 SQL（学习必备！）
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-    # 下划线 → 驼峰自动映射：image_url → imageUrl（默认开启，显式写出便于理解）
     map-underscore-to-camel-case: true
-  # 枚举包路径：告诉 MyBatis-Plus 去哪里扫描枚举的 TypeHandler
   type-enums-package: com.example.demo.model
+
+# ========== Sa-Token ==========
+sa-token:
+  # Token 名称（前端 Header 中传：satoken: xxx）
+  token-name: satoken
+  # Token 有效期（秒），默认 30 天 = 2592000
+  timeout: 2592000
+  # 是否允许同一账号多地同时登录（true=允许，false=后登录挤掉前一个）
+  is-concurrent: true
+  # 是否输出 Sa-Token 的操作日志
+  is-log: true
 
 server:
   port: 8080

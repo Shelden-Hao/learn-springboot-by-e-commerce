@@ -3,7 +3,9 @@ package com.example.demo.config;
 import com.example.demo.mapper.OrderItemMapper;
 import com.example.demo.mapper.OrderMapper;
 import com.example.demo.mapper.ProductMapper;
+import com.example.demo.mapper.UserMapper;
 import com.example.demo.model.*;
+import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -17,13 +19,16 @@ public class DataInitializer implements CommandLineRunner {
     private final ProductMapper productMapper;
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
+    private final UserMapper userMapper;
 
     public DataInitializer(ProductMapper productMapper,
                            OrderMapper orderMapper,
-                           OrderItemMapper orderItemMapper) {
+                           OrderItemMapper orderItemMapper,
+                           UserMapper userMapper) {
         this.productMapper = productMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
+        this.userMapper = userMapper;
     }
 
     @Override
@@ -90,6 +95,15 @@ public class DataInitializer implements CommandLineRunner {
         orderItemMapper.insert(new OrderItem(o3.getId(), 6L, 2, new BigDecimal("399.00")));
 
         System.out.println("  ✅ 订单 x" + orderMapper.selectCount(null));
+
+        // ===== 测试用户 =====
+        // 密码 "123456" 的 BCrypt 密文（每次生成都不同，这是示例）
+        String testPassword = BCrypt.hashpw("123456", BCrypt.gensalt());
+        userMapper.insert(new User("admin", testPassword, "管理员"));
+        userMapper.insert(new User("test", testPassword, "测试用户"));
+
+        System.out.println("  ✅ 用户 x" + userMapper.selectCount(null));
         System.out.println("✅ 全部数据初始化完成");
+        System.out.println("   👤 测试账号: admin / 123456");
     }
 }

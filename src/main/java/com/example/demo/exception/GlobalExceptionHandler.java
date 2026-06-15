@@ -58,6 +58,15 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 捕获 Sa-Token 未登录异常 → 返回 401
+     */
+    @ExceptionHandler(cn.dev33.satoken.exception.NotLoginException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)  // 401
+    public ErrorResponse handleNotLogin() {
+        return new ErrorResponse(401, "请先登录");
+    }
+
+    /**
      * 捕获校验失败异常 @Valid 拦截的 → 返回 400 + 具体错误列表
      *
      * MethodArgumentNotValidException：

@@ -30,3 +30,12 @@ CREATE TABLE IF NOT EXISTS order_items (
     quantity     INT            NOT NULL COMMENT '购买数量',
     price        DECIMAL(10,2)  NOT NULL COMMENT '下单时的商品单价（快照，防止后续改价影响历史订单）'
 );
+
+-- 用户表：注册/登录
+CREATE TABLE IF NOT EXISTS users (
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username     VARCHAR(50)    NOT NULL UNIQUE COMMENT '用户名（登录账号）',
+    password     VARCHAR(200)   NOT NULL COMMENT '密码（BCrypt 加密后的密文，永不明文存储）',
+    nickname     VARCHAR(50)    DEFAULT '' COMMENT '昵称',
+    created_at   TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
+);

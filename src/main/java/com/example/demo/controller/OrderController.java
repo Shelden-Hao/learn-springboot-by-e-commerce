@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.dto.CreateOrderRequest;
@@ -30,6 +31,7 @@ import java.util.List;
  *   - 动态 SQL 查询（searchOrders）
  *   - 下单事务：扣库存 → 生成订单号 → 插订单 + 订单明细
  */
+@SaCheckLogin                  // 类级别：所有方法都需登录（双重保险）
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {

@@ -21,7 +21,7 @@ public class MyBatisPlusConfig {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
 
         // 分页插件：自动拦截分页查询，添加 LIMIT ? OFFSET ? 和 SELECT COUNT(*)
-        PaginationInnerInterceptor pagination = new PaginationInnerInterceptor(DbType.H2);
+        PaginationInnerInterceptor pagination = new PaginationInnerInterceptor(DbType.MYSQL);
         // 溢出处理：page 太大时回到首页，避免空结果
         pagination.setOverflow(true);
         // 单页最大 100 条，防止恶意请求

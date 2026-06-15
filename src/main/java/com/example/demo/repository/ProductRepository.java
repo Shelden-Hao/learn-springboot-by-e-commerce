@@ -1,6 +1,7 @@
 package com.example.demo.repository;
 
 import com.example.demo.model.Product;
+import com.example.demo.model.ProductStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -53,6 +54,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      *   OrderByXxxDesc → ORDER BY xxx DESC
      */
     Page<Product> findByNameContaining(String keyword, Pageable pageable);
+
+    /**
+     * 按状态查询 — 枚举也能当查询条件
+     *
+     * 生成 SQL：SELECT * FROM products WHERE status = 'ON_SALE'
+     *
+     * @Enumerated(STRING) 确保存的是字符串 "ON_SALE" 而非数字 0/1，
+     * 数字枚举在扩展时容易错位（中间插入新值全员序号全乱）
+     */
+    Page<Product> findByStatus(ProductStatus status, Pageable pageable);
 
     // ═══════════════════════════════════════════════════════════
     // 方式二：@Query 手写 JPQL（类 SQL 语法，操作的是 Java 对象而非表）

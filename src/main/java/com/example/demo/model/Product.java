@@ -38,11 +38,11 @@ public class Product {
     @Column(nullable = false)
     private Integer stock;
 
-    /**
-     * columnDefinition 直接写 SQL 片段
-     * 这里的 MySQL 语法 H2 也兼容（H2 有 MySQL 兼容模式）
-     */
-    @Column(updatable = false) // 创建后不允许修改
+    @Enumerated(EnumType.STRING) // 枚举值存为字符串 "ON_SALE" / "OFF_SHELF"
+    @Column(nullable = false, length = 20)
+    private ProductStatus status;
+
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     // ========== JPA 要求必须有默认构造方法，这是给框架用的 ==========
@@ -51,11 +51,18 @@ public class Product {
     // ========== 我们用的构造方法：创建商品时传值 ==========
     public Product(String name, BigDecimal price, String description,
                    String imageUrl, Integer stock) {
+        this(name, price, description, imageUrl, stock, ProductStatus.ON_SALE);
+    }
+
+    /** 可指定状态的构造方法（种子数据用） */
+    public Product(String name, BigDecimal price, String description,
+                   String imageUrl, Integer stock, ProductStatus status) {
         this.name = name;
         this.price = price;
         this.description = description;
         this.imageUrl = imageUrl;
         this.stock = stock;
+        this.status = status;
     }
 
     /**
@@ -105,6 +112,9 @@ public class Product {
 
     public Integer getStock() { return stock; }
     public void setStock(Integer stock) { this.stock = stock; }
+
+    public ProductStatus getStatus() { return status; }
+    public void setStatus(ProductStatus status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -4,6 +4,7 @@ import com.example.demo.dto.CreateProductRequest;
 import com.example.demo.dto.UpdateProductRequest;
 import com.example.demo.exception.ProductNotFoundException;
 import com.example.demo.model.Product;
+import com.example.demo.model.ProductStatus;
 import com.example.demo.repository.ProductRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -41,28 +42,20 @@ public class ProductController {
     }
 
     /**
-     * GET /api/products — 分页查询商品列表
+     * GET /api/products — 分页查询商品列表，支持状态筛选
      *
-     * Pageable：Spring 自动从 URL 参数构造
-     *   GET /api/products?page=0&size=10&sort=price,desc
+     * @RequestParam(required = false)：可选参数，不传就查全部
      *
-     * 参数说明：
-     *   page  — 页码（从 0 开始），默认 0
-     *   size  — 每页条数，默认 20
-     *   sort  — 排序字段，逗号分隔；desc 降序，asc 升序（默认）
-     *
-     * Page<Product> 包含：
-     *   content       — 当前页数据
-     *   totalElements — 总条数
-     *   totalPages    — 总页数
-     *   number        — 当前页码
-     *   size          — 每页条数
-     *
-     * 前端类比：
-     *   const { data, total, page, pageSize } = await fetchProducts({ page: 1, size: 20 });
+     *   GET /api/products                        → 查全部
+     *   GET /api/products?status=ON_SALE         → 只查在售
+     *   GET /api/products?status=OFF_SHELF       → 只查下架
      */
     @GetMapping
-    public Page<Product> list(Pageable pageable) {
+    public Page<Product> list(@RequestParam(required = false) ProductStatus status,
+                              Pageable pageable) {
+        if (status != null) {
+            return productRepository.findByStatus(status, pageable);
+        }
         return productRepository.findAll(pageable);
     }
 
@@ -179,5 +172,36 @@ public class ProductController {
             throw new ProductNotFoundException(id);
         }
         productRepository.deleteById(id);
+    }
+
+    /**
+     * PATCH /api/products/{id}/status?action=off — 上下架商品
+     *
+     * PATCH vs PUT：
+     *   PUT    — 全量替换整个资源
+     *   PATCH  — 只改资源的一部分（REST 最佳实践中，状态切换用 PATCH）
+     *
+     * @RequestParam action：on = 上架，off = 下架
+     *
+     * 流程：
+     *   1. 查出商品
+     *   2. 根据 action 设置新状态
+     *   3. save() — 触发 UPDATE SQL，只改 status 列
+     */
+    @PatchMapping("/{id}/status")
+    @Transactional
+    public Product toggleStatus(@PathVariable Long id,
+                                 @RequestParam String action) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(id));
+
+        // 根据 action 参数切换状态
+        switch (action.toLowerCase()) {
+            case "on"  -> product.setStatus(ProductStatus.ON_SALE);
+            case "off" -> product.setStatus(ProductStatus.OFF_SHELF);
+            default -> throw new IllegalArgumentException("不支持的操作: " + action + "，请使用 on 或 off");
+        }
+
+        return productRepository.save(product);
     }
 }

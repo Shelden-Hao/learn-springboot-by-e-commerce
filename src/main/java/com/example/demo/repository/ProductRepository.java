@@ -1,7 +1,11 @@
 package com.example.demo.repository;
 
 import com.example.demo.model.Product;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -15,38 +19,64 @@ import org.springframework.stereotype.Repository;
  *   Product = 操作的实体类
  *   Long    = 主键的类型
  *
- * 内置方法（不用写）：
- *   findAll()           → SELECT * FROM products
- *   findById(Long id)   → SELECT * FROM products WHERE id = ?
- *   save(Product p)     → INSERT 或 UPDATE
- *   deleteById(Long id) → DELETE FROM products WHERE id = ?
- *   count()             → SELECT COUNT(*) FROM products
- *
  * 前端类比：就像你引入了一个封装好的 API 客户端库（axios 封装），
  *           你不用写 fetch 代码，调方法就行。
  */
-@Repository  // 标记为数据访问层的 Bean，让 Spring 管理它
+@Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    /**
-     * Spring 启动
-     *     │
-     *     ├─ 扫描到 @Repository → 创建 ProductRepository 的代理实现
-     *     ├─ 扫描到 @RestController → 发现构造方法需要 ProductRepository
-     *     │                                        │
-     *     │              自动注入 ←────────────────┘
-     *     │
-     *     ├─ 扫描到 @Component → 同理注入给 DataInitializer
-     *     │
-     *     ├─ 执行 DataInitializer.run() → save() 3 条商品到数据库
-     *     │
-     *     └─ 启动完成，等待请求
-     */
+    // ═══════════════════════════════════════════════════════════
+    // 方式一：方法命名查询（不用写 SQL！）
+    // ═══════════════════════════════════════════════════════════
 
-    // 你可以在这里定义自定义查询方法
-    // 按命名规则写方法名，Spring 自动解析成 SQL！
-    // 例如：
-    //   findByName(String name)   → SELECT ... WHERE name = ?
-    //   findByPriceBetween(...)   → SELECT ... WHERE price BETWEEN ? AND ?
-    // 后续课程会用到
+    /**
+     * 按商品名称模糊搜索 + 分页
+     *
+     * 方法名 = 查询意图，Spring 自动翻译成 SQL：
+     *   find  → SELECT
+     *   By    → WHERE
+     *   Name  → name 字段
+     *   Containing → LIKE %keyword%
+     *
+     * 最终生成：
+     *   SELECT * FROM products WHERE name LIKE '%键盘%' LIMIT 5 OFFSET 0
+     *
+     * 常用命名关键字：
+     *   Containing   → LIKE %?%      包含
+     *   StartingWith → LIKE ?%       前缀匹配
+     *   EndingWith   → LIKE %?       后缀匹配
+     *   IgnoreCase   → UPPER(name)   忽略大小写
+     *   Between      → BETWEEN ? AND ?
+     *   LessThan     → < ?
+     *   GreaterThanEqual → >= ?
+     *   And / Or     → AND / OR 连接多个条件
+     *   OrderByXxxDesc → ORDER BY xxx DESC
+     */
+    Page<Product> findByNameContaining(String keyword, Pageable pageable);
+
+    // ═══════════════════════════════════════════════════════════
+    // 方式二：@Query 手写 JPQL（类 SQL 语法，操作的是 Java 对象而非表）
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * 多字段模糊搜索 — 在商品名称 OR 描述中搜索
+     *
+     * JPQL vs SQL：
+     *   SQL:   SELECT * FROM products WHERE name LIKE '%键盘%' OR description LIKE '%键盘%'
+     *   JPQL:  SELECT p FROM Product p WHERE p.name LIKE %:kw% OR p.description LIKE %:kw%
+     *          ↑                                          ↑
+     *          操作的是实体类 Product，不是表名 products       属性名，不是列名
+     *
+     * @Param("kw")：把方法参数绑定到 JPQL 中的命名参数 :kw
+     *
+     * 什么时候用 @Query？
+     *   - 多表关联查询（JOIN）
+     *   - 复杂条件组合（方法名太长了读不懂）
+     *   - 需要精确控制 SQL 语句
+     */
+    @Query("SELECT p FROM Product p " +
+           "WHERE p.name LIKE %:kw% " +
+           "   OR p.description LIKE %:kw%")
+    Page<Product> searchByKeyword(@Param("kw") String keyword, Pageable pageable);
 }
+

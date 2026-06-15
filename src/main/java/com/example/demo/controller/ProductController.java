@@ -67,6 +67,23 @@ public class ProductController {
     }
 
     /**
+     * GET /api/products/search?keyword=键盘&page=0&size=5 — 模糊搜索
+     *
+     * @RequestParam：从 URL 查询参数中提取值
+     *
+     * 使用 @Query 版本（多字段搜索），在名称或描述中匹配
+     * 如果想用命名方法查询版，改为 productRepository.findByNameContaining(keyword, pageable)
+     *
+     * 前端类比：
+     *   const { data } = await fetch('/api/products/search?keyword=键盘&page=0&size=5');
+     *   → 返回名称或描述中包含"键盘"的商品，分页
+     */
+    @GetMapping("/search")
+    public Page<Product> search(@RequestParam String keyword, Pageable pageable) {
+        return productRepository.searchByKeyword(keyword, pageable);
+    }
+
+    /**
      * GET /api/products/{id} — 查询单个商品
      *
      * @PathVariable：从 URL 路径中提取变量

@@ -2,26 +2,32 @@ spring:
   application:
     name: demo
 
-  # ========== 数据源 & JPA 配置 ==========
+  # ========== 数据源配置 ==========
   datasource:
-    # H2 内嵌数据库，数据存内存，重启即清空
-    url: jdbc:h2:mem:demo_db;MODE=MySQL
+    url: jdbc:h2:mem:demo_db;MODE=MySQL;DATABASE_TO_LOWER=TRUE
     driver-class-name: org.h2.Driver
     username: sa
     password:
 
   h2:
     console:
-      enabled: true       # 开启 H2 控制台，浏览器访问 /h2-console 可直连数据库
-      path: /h2-console   # 控制台页面路径
+      enabled: true
+      path: /h2-console
 
-  jpa:
-    hibernate:
-      ddl-auto: create-drop  # 启动时自动建表，关闭时自动删表（开发环境用）
-    show-sql: true           # 在控制台打印 SQL 语句（学习必备！）
-    properties:
-      hibernate:
-        format_sql: true     # 格式化 SQL，方便阅读
+  # schema.sql / data.sql 自动执行（建表 + 初始化数据）
+  sql:
+    init:
+      mode: always
+
+# ========== MyBatis-Plus 配置 ==========
+mybatis-plus:
+  configuration:
+    # 控制台打印 SQL（学习必备！）
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 下划线 → 驼峰自动映射：image_url → imageUrl（默认开启，显式写出便于理解）
+    map-underscore-to-camel-case: true
+  # 枚举包路径：告诉 MyBatis-Plus 去哪里扫描枚举的 TypeHandler
+  type-enums-package: com.example.demo.model
 
 server:
   port: 8080

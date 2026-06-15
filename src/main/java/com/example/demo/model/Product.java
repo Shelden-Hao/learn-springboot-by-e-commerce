@@ -1,54 +1,62 @@
 package com.example.demo.model;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 商品实体类 — 既当 Java 对象，也当数据库表
+ * 商品实体类 — MyBatis-Plus 版本
  *
- * 关键注解：
- *   @Entity        → "我是一个数据库表"
- *   @Table         → 表名（不写默认用类名小写 products）
- *   @Id            → 主键
- *   @GeneratedValue → 主键自动生成（自增）
- *   @Column        → 字段细节（不写也能自动推断）
+ * JPA 注解 → MyBatis-Plus 注解对照：
+ *   @Entity         →  不需要（靠 Mapper 扫描）
+ *   @Table          →  @TableName
+ *   @Id             →  @TableId
+ *   @GeneratedValue →  @TableId(type = IdType.AUTO)
+ *   @Column         →  @TableField
+ *   @Enumerated     →  枚举包自动扫描 + @EnumValue
+ *   @PrePersist     →  @TableField(fill = FieldFill.INSERT) + MetaObjectHandler
  *
- * 前端类比：这就是 TypeScript 的 type/interface，只不过它直接映射到 SQL 表，启动时自动执行 CREATE TABLE products...
+ * 核心差异：
+ *   JPA 是"重 ORM"，实体 = 数据库表，自动建表、自动生成 SQL
+ *   MyBatis-Plus 是"轻 ORM"，实体 = 字段映射，SQL 由开发者掌控
  */
-@Entity
-@Table(name = "products")
+@TableName("products")   // 对应数据库表名
 public class Product {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // 主键自增：1, 2, 3...
+    @TableId(type = IdType.AUTO)    // 主键自增
     private Long id;
 
-    @Column(nullable = false, length = 200)  // NOT NULL，最长 200 字符
+    @TableField("name")
     private String name;
 
-    @Column(nullable = false, precision = 10, scale = 2) // 10 位总长，2 位小数
+    @TableField("price")
     private BigDecimal price;
 
-    @Column(length = 1000)  // 描述可能比较长
+    @TableField("description")
     private String description;
 
+    @TableField("image_url")
     private String imageUrl;
 
-    @Column(nullable = false)
+    @TableField("stock")
     private Integer stock;
 
-    @Enumerated(EnumType.STRING) // 枚举值存为字符串 "ON_SALE" / "OFF_SHELF"
-    @Column(nullable = false, length = 20)
+    /**
+     * 枚举字段 — 写入数据库时自动取 @EnumValue 标记的值
+     * 例如 ProductStatus.ON_SALE → 写入 "ON_SALE"
+     *
+     * 读取时反向：从数据库读出 "ON_SALE" → ProductStatus.ON_SALE
+     */
+    @TableField("status")
     private ProductStatus status;
 
-    @Column(updatable = false)
+    @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
-    // ========== JPA 要求必须有默认构造方法，这是给框架用的 ==========
+    // ========== MyBatis-Plus 也要求无参构造方法 ==========
     public Product() {}
 
-    // ========== 我们用的构造方法：创建商品时传值 ==========
+    // ========== 创建时使用（默认 ON_SALE） ==========
     public Product(String name, BigDecimal price, String description,
                    String imageUrl, Integer stock) {
         this(name, price, description, imageUrl, stock, ProductStatus.ON_SALE);
@@ -65,25 +73,7 @@ public class Product {
         this.status = status;
     }
 
-    /**
-     * 在持久化到数据库之前自动调用
-     * 如果创建时间没设置，就取当前时间
-     */
-    @PrePersist
-    public void prePersist() {
-        if (this.createdAt == null) {
-            this.createdAt = LocalDateTime.now();
-        }
-    }
-
-    /**
-     * 用 DTO 的值更新当前实体 — 只更新非 null 字段
-     *
-     * 为什么不用 setter 逐个赋值？
-     *   因为 UpdateProductRequest 所有字段都是可选的（允许 null），
-     *   直接把 null 赋值给 this.price 会把数据库里的价格清掉。
-     *   所以只有在字段非 null 时才覆盖原值。
-     */
+    /** 部分更新：只覆盖非 null 字段 */
     public void applyUpdate(String name, BigDecimal price, String description,
                             String imageUrl, Integer stock) {
         if (name != null) this.name = name;

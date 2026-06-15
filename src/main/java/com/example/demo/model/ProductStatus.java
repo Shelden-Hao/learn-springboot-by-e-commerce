@@ -10,8 +10,9 @@ package com.example.demo.model;
  *
  * 枚举的优势：
  *   - 编译期检查：写 ProductStatus.ON_SALE 拼错了 IDE 直接标红
- *   - 取值受限：只能是 ON_SALE 或 OFF_SHELF，没有第三种可能
- *   - 数据库映射：@Enumerated(STRING) → 存 "ON_SALE" / "OFF_SHELF"
+ *   - 取值受限：只能是 ON_SALE 或 OFF_SHELF
+ *   - MyBatis-Plus 自动映射：通过 type-enums-package 配置，
+ *     写入时 .name() → "ON_SALE"，读取时 "ON_SALE" → ProductStatus.ON_SALE
  *
  * 前端类比：TypeScript 的 union type
  *   type ProductStatus = 'ON_SALE' | 'OFF_SHELF'

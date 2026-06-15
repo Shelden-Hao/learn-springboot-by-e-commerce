@@ -42,10 +42,18 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- JPA：Java 对象 ↔ 数据库表的 ORM 映射框架，底层是 Hibernate -->
+        <!-- JDBC：数据库连接池 HikariCP（MyBatis-Plus 依赖它） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- MyBatis-Plus：国产 ORM 利器，BaseMapper 一行 SQL 不用写 -->
+        <!-- 3.5.7 稳定版，扩展模块(含分页插件)已内置 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>3.5.7</version>
         </dependency>
 
         <!-- H2 数据库：Java 写的内嵌数据库，数据存内存，重启就清空——开发&学习神器 -->

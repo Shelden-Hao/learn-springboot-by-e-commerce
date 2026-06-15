@@ -66,7 +66,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)  // 400
     public ErrorResponse handleValidationFailed(MethodArgumentNotValidException ex) {
-        // 从异常对象中提取所有字段校验错误
         List<String> errors = ex.getBindingResult()
                 .getFieldErrors()
                 .stream()
@@ -74,6 +73,15 @@ public class GlobalExceptionHandler {
                 .toList();
 
         return new ErrorResponse(400, "请求参数校验失败", errors);
+    }
+
+    /**
+     * 非法参数异常 — 例如 toggleStatus 的 action 传了 on/off 以外的值
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)  // 400
+    public ErrorResponse handleIllegalArgument(IllegalArgumentException ex) {
+        return new ErrorResponse(400, ex.getMessage());
     }
 
     /**

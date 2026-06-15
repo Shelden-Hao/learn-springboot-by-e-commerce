@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!--
+  ╔══════════════════════════════════════════════════════════╗
+  ║         MyBatis XML Mapper — 核心教学文件                  ║
+  ╚══════════════════════════════════════════════════════════╝
+
+  这是 MyBatis 最核心也最强大的部分——手写 SQL。
+  MyBatis-Plus 的 BaseMapper 能处理 90% 的单表 CRUD，
+  但多表 JOIN、复杂报表、动态条件必须靠 XML。
+
+  namespace：必须指向对应的 Java Mapper 接口
+-->
+
+    <!--
+    1. 扫描到 @Mapper → 找到 OrderMapper 接口
+    2. 找到 classpath:mapper/OrderMapper.xml → 解析 <mapper namespace="...OrderMapper">
+    3. 对每个 <select id="selectOrderDetail"> → 生成一个 JDBC 代理对象
+    4. 把代理对象注入给 OrderController
+    5. 你调用 orderMapper.selectOrderDetail(1L) → 代理拦截 → 读取 XML 中的 SQL → 用 JDBC 执行 → 用 ResultMap 映射结果 → 返回 DTO
+   -->
+<mapper namespace="com.example.demo.mapper.OrderMapper">
+    <!--
+    XML 的 namespace = Mapper 接口的全限定类名
+    XML 里 <select> / <insert> 的 id = Mapper 接口里的方法名
+    -->
+
+    <!--
+      ═══════════════════════════════════════════════════════
+      知识点 1：ResultMap — 自定义字段映射
+      ═══════════════════════════════════════════════════════
+
+      当 SQL 查询结果的列名和 Java 对象属性名不一致时，
+      用 <resultMap> 手动指定映射关系。
+
+      数据库返回（二维表）：
+        ┌──────────┬────────────┬─────────┬──────────────┬──────────┐
+        │ order_id │ order_no   │ item_id │ product_name │ quantity │
+        ├──────────┼────────────┼─────────┼──────────────┼──────────┤
+        │ 1        │ ORD...001  │ 1       │ 机械键盘     │ 1        │
+        │ 1        │ ORD...001  │ 2       │ 无线鼠标     │ 1        │  ← 同一订单的两行
+        └──────────┴────────────┴─────────┴──────────────┴──────────┘
+
+      我们要的对象（嵌套结构）：
+        OrderDetailDTO {
+          orderId: 1,
+          orderNo: "ORD...001",
+          items: [
+            { itemId: 1, productName: "机械键盘", quantity: 1 },
+            { itemId: 2, productName: "无线鼠标", quantity: 1 }
+          ]
+        }
+
+      resultType  vs  resultMap：
+        resultType="Order"      → 简单场景：列名 = 属性名（或开启驼峰自动映射）
+        resultMap="orderMap"    → 复杂场景：嵌套对象、自定义映射、association/collection
+    -->
+    <resultMap id="orderMap" type="com.example.demo.model.Order">
+        <!-- 数据库表字段和实体属性的对应关系 -->
+        <id     property="id"          column="id"/>
+        <result property="orderNo"     column="order_no"/>
+        <result property="buyerName"   column="buyer_name"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="status"      column="status"/>
+        <result property="createdAt"   column="created_at"/>
+    </resultMap>
+
+    <!--
+      ═══════════════════════════════════════════════════════
+      知识点 2：多表 JOIN + collection 嵌套映射
+      ═══════════════════════════════════════════════════════
+
+      查询一张订单 + 它的所有明细 + 每个明细对应的商品名。
+      涉及三张表：orders、order_items、products。
+
+      关键标签：
+        <collection>  → 一对多映射（一个订单对应多个 order_items）
+        <association> → 一对一映射（一个 order_item 对应一个 product）
+
+      前端类比：
+        TypeORM 的 relations: ['items', 'items.product']
+        Prisma 的 include: { items: { include: { product: true } } }
+    -->
+    <!--
+    第1步：执行 SQL → 得到 2 行数据
+    ┌──────────┬──────────┬─────────┬──────────────┬──────────┐
+    │ order_id │ order_no │ item_id │ product_name │ quantity │
+    ├──────────┼──────────┼─────────┼──────────────┼──────────┤
+    │    1     │ORD...001 │    1    │  机械键盘     │    1     │  ← 第1行
+    │    1     │ORD...001 │    2    │  无线鼠标     │    1     │  ← 第2行
+    └──────────┴──────────┴─────────┴──────────────┴──────────┘
+
+    第2步：处理第1行
+      - order_id=1 → 创建一个 OrderDetailDTO，orderId=1
+      - item_id=1  → 创建 ItemDTO{productName="机械键盘", quantity=1}
+      - 把 ItemDTO 加到 order.items 里 → items = [{机械键盘}]
+
+    第3步：处理第2行
+      - order_id=1 → 发现已经有 orderId=1 的对象了（<id> 告诉它"这是主键，相同的合并"）
+      - item_id=2  → 创建 ItemDTO{productName="无线鼠标", quantity=1}
+      - 追加到 order.items  → items = [{机械键盘}, {无线鼠标}]
+
+    第4步：返回这个 OrderDetailDTO
+    -->
+    <resultMap id="orderDetailMap" type="com.example.demo.dto.OrderDetailDTO">
+        <!-- 主表字段：orders -->
+        <id     property="orderId"     column="order_id"/>
+        <result property="orderNo"     column="order_no"/>
+        <result property="buyerName"   column="buyer_name"/>
+        <result property="totalAmount" column="total_amount"/>
+        <result property="status"      column="status"/>
+        <result property="createdAt"   column="created_at"/>
+
+        <!--
+          一对多嵌套：order_items
+          property  → DTO 中的 List<ItemDTO> 字段名
+          ofType    → 集合中元素的类型
+        -->
+        <!-- ⭐ 关键！collection：把多行"折叠"成一个 List -->
+        <!-- property="items"  → 填入 OrderDetailDTO.items 这个 List -->
+        <!-- ofType="ItemDTO"  → List 里每个元素的类型 -->
+        <collection property="items" ofType="com.example.demo.dto.OrderDetailDTO$ItemDTO">
+            <id     property="itemId"      column="item_id"/>
+            <result property="productId"   column="product_id"/>
+            <result property="productName" column="product_name"/>
+            <result property="price"       column="item_price"/>
+            <result property="quantity"    column="quantity"/>
+        </collection>
+    </resultMap>
+
+    <!--
+      ═══════════════════════════════════════════════════════
+      查询 1：订单详情（三表 JOIN）
+      ═══════════════════════════════════════════════════════
+
+      #{} 是预编译占位符（PreparedStatement），防 SQL 注入
+      绝对不能写成 ${orderId}，那是字符串拼接，有注入风险！
+    -->
+    <select id="selectOrderDetail" resultMap="orderDetailMap">
+        SELECT
+            o.id           AS order_id,
+            o.order_no,
+            o.buyer_name,
+            o.total_amount,
+            o.status,
+            o.created_at,
+            oi.id          AS item_id,
+            oi.product_id,
+            p.name         AS product_name,
+            oi.price       AS item_price,
+            oi.quantity
+        FROM orders o
+        LEFT JOIN order_items oi ON o.id = oi.order_id
+        LEFT JOIN products p      ON oi.product_id = p.id
+        WHERE o.id = #{orderId}
+    </select>
+
+    <!--
+      ═══════════════════════════════════════════════════════
+      知识点 3：动态 SQL — <where> + <if>
+      ═══════════════════════════════════════════════════════
+
+      <where>：自动处理开头的 AND/OR
+        - 没有任何 <if> 命中 → 不输出 WHERE
+        - 有一个命中但以 AND 开头 → 自动去掉 AND
+
+      这和 JPA 的 LambdaQueryWrapper 一样是条件拼接，
+      但 XML 方式更直观，因为你能看到最终 SQL 长什么样。
+
+      如果你写过 React JSX 条件渲染：
+        {condition && <div>...</div>}
+      这就是 XML 版的 <if test="condition">...SQL片段...</if>
+    -->
+    <select id="searchOrders" resultMap="orderMap">
+        SELECT * FROM orders
+        <where>
+            <if test="buyerName != null and buyerName != ''">
+                AND buyer_name LIKE CONCAT('%', #{buyerName}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <!--
+      ═══════════════════════════════════════════════════════
+      补充知识点速查：
+      ═══════════════════════════════════════════════════════
+
+      #{} vs ${}：
+        #{name}  → 预编译 ? 占位，防注入（永远优先使用）
+        ${name}  → 字符串拼接，有注入风险（仅用于动态表名/列名）
+
+      <foreach>：IN 查询
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        生成：WHERE id IN (1, 2, 3)
+
+      <set>：UPDATE 动态拼接，自动处理逗号
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="price != null">price = #{price},</if>
+        </set>
+
+      <choose>/<when>/<otherwise>：相当于 switch-case
+        <choose>
+            <when test="type == 'A'">...</when>
+            <otherwise>...</otherwise>
+        </choose>
+
+      <sql> + <include>：SQL 片段复用
+        <sql id="baseColumns">id, name, price</sql>
+        <include refid="baseColumns"/>
+      -->
+</mapper>

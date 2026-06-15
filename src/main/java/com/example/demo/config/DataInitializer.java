@@ -1,40 +1,40 @@
 package com.example.demo.config;
 
+import com.example.demo.mapper.OrderItemMapper;
+import com.example.demo.mapper.OrderMapper;
 import com.example.demo.mapper.ProductMapper;
-import com.example.demo.model.Product;
-import com.example.demo.model.ProductStatus;
+import com.example.demo.model.*;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
-/**
- * 数据初始化器 — MyBatis-Plus 版
- *
- * JPA 对比：
- *   productRepository.save()  →  productMapper.insert()
- *   productRepository.count()  →  productMapper.selectCount(null)
- *
- * 注意：MyBatis-Plus 的 insert() 不会像 JPA save() 那样自动判断 INSERT 还是 UPDATE
- */
 @Component
 public class DataInitializer implements CommandLineRunner {
 
     private final ProductMapper productMapper;
+    private final OrderMapper orderMapper;
+    private final OrderItemMapper orderItemMapper;
 
-    public DataInitializer(ProductMapper productMapper) {
+    public DataInitializer(ProductMapper productMapper,
+                           OrderMapper orderMapper,
+                           OrderItemMapper orderItemMapper) {
         this.productMapper = productMapper;
+        this.orderMapper = orderMapper;
+        this.orderItemMapper = orderItemMapper;
     }
 
     @Override
     public void run(String... args) {
-        // selectCount(null)：传 null 表示无条件，等价于 SELECT COUNT(*) FROM products
         if (productMapper.selectCount(null) > 0) {
             return;
         }
 
-        System.out.println("📦 正在初始化商品数据...");
+        System.out.println("📦 正在初始化数据...");
 
+        // ===== 商品 =====
         Object[][] seedData = {
             {"机械键盘 K8 Pro",      "499.00",  "75% 布局 · Gasket 结构 · 热插拔 · RGB 背光",           "https://img.example.com/kb-k8pro.jpg",      120, ProductStatus.ON_SALE},
             {"27寸 4K 显示器",       "2499.00", "IPS 面板 · 3840×2160 · Type-C 65W 反向充电",             "https://img.example.com/monitor-27-4k.jpg",   45, ProductStatus.ON_SALE},
@@ -64,6 +64,32 @@ public class DataInitializer implements CommandLineRunner {
             ));
         }
 
-        System.out.println("✅ 商品数据初始化完成，共插入 " + productMapper.selectCount(null) + " 条记录");
+        System.out.println("  ✅ 商品 x" + productMapper.selectCount(null));
+
+        // ===== 订单（演示数据，方便测试多表联查） =====
+        String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS"));
+
+        // 订单1：小明 买了 1把键盘 + 1个鼠标
+        Order o1 = new Order("ORD" + ts + "001", "小明",
+                new BigDecimal("1198.00"), OrderStatus.PAID);
+        orderMapper.insert(o1);
+        orderItemMapper.insert(new OrderItem(o1.getId(), 1L, 1, new BigDecimal("499.00")));  // 键盘
+        orderItemMapper.insert(new OrderItem(o1.getId(), 4L, 1, new BigDecimal("699.00")));  // 鼠标
+
+        // 订单2：小红 买了 1台显示器
+        Order o2 = new Order("ORD" + ts + "002", "小红",
+                new BigDecimal("2499.00"), OrderStatus.SHIPPED);
+        orderMapper.insert(o2);
+        orderItemMapper.insert(new OrderItem(o2.getId(), 2L, 1, new BigDecimal("2499.00")));
+
+        // 订单3：小明 又买了 1个扩展坞 + 2把 K2 键盘
+        Order o3 = new Order("ORD" + ts + "003", "小明",
+                new BigDecimal("1147.00"), OrderStatus.PENDING);
+        orderMapper.insert(o3);
+        orderItemMapper.insert(new OrderItem(o3.getId(), 5L, 1, new BigDecimal("349.00")));
+        orderItemMapper.insert(new OrderItem(o3.getId(), 6L, 2, new BigDecimal("399.00")));
+
+        System.out.println("  ✅ 订单 x" + orderMapper.selectCount(null));
+        System.out.println("✅ 全部数据初始化完成");
     }
 }

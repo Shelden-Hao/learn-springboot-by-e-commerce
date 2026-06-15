@@ -2,14 +2,15 @@ package com.example.demo.controller;
 
 import com.example.demo.dto.CreateProductRequest;
 import com.example.demo.dto.UpdateProductRequest;
+import com.example.demo.exception.ProductNotFoundException;
 import com.example.demo.model.Product;
 import com.example.demo.repository.ProductRepository;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 /**
  * 商品控制器 — 处理 /api/products 相关的 HTTP 请求
@@ -40,13 +41,29 @@ public class ProductController {
     }
 
     /**
-     * GET /api/products — 查询全部商品
+     * GET /api/products — 分页查询商品列表
+     *
+     * Pageable：Spring 自动从 URL 参数构造
+     *   GET /api/products?page=0&size=10&sort=price,desc
+     *
+     * 参数说明：
+     *   page  — 页码（从 0 开始），默认 0
+     *   size  — 每页条数，默认 20
+     *   sort  — 排序字段，逗号分隔；desc 降序，asc 升序（默认）
+     *
+     * Page<Product> 包含：
+     *   content       — 当前页数据
+     *   totalElements — 总条数
+     *   totalPages    — 总页数
+     *   number        — 当前页码
+     *   size          — 每页条数
+     *
+     * 前端类比：
+     *   const { data, total, page, pageSize } = await fetchProducts({ page: 1, size: 20 });
      */
     @GetMapping
-    public List<Product> list() {
-        // 一行代码替代之前的 List.of(...) 大段硬编码
-        // findAll() 是 JpaRepository 自带的方法
-        return productRepository.findAll();
+    public Page<Product> list(Pageable pageable) {
+        return productRepository.findAll(pageable);
     }
 
     /**
@@ -59,9 +76,10 @@ public class ProductController {
     @GetMapping("/{id}")
     public Product getById(@PathVariable Long id) {
         // findById 返回 Optional<Product>（可能查到，也可能查不到）
-        // orElseThrow → 查到了返回 Product，没查到抛出异常（Spring 自动转 404）
+        // orElseThrow → 查到了返回 Product，没查到抛出 ProductNotFoundException
+        // GlobalExceptionHandler 拦截后 → 返回 404 + 结构化 JSON
         return productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("商品不存在: id=" + id));
+                .orElseThrow(() -> new ProductNotFoundException(id));
     }
 
     /**
@@ -114,7 +132,7 @@ public class ProductController {
     public Product update(@PathVariable Long id,
                           @Valid @RequestBody UpdateProductRequest request) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("商品不存在: id=" + id));
+                .orElseThrow(() -> new ProductNotFoundException(id));
 
         product.applyUpdate(
                 request.getName(),
@@ -141,7 +159,7 @@ public class ProductController {
     public void delete(@PathVariable Long id) {
         // 先查再删，不存在就抛异常
         if (!productRepository.existsById(id)) {
-            throw new RuntimeException("商品不存在: id=" + id);
+            throw new ProductNotFoundException(id);
         }
         productRepository.deleteById(id);
     }

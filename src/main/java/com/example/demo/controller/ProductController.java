@@ -1,11 +1,11 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.CreateProductRequest;
 import com.example.demo.model.Product;
 import com.example.demo.repository.ProductRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -60,5 +60,34 @@ public class ProductController {
         // orElseThrow → 查到了返回 Product，没查到抛出异常（Spring 自动转 404）
         return productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("商品不存在: id=" + id));
+    }
+
+    /**
+     * POST /api/products — 创建新商品
+     *
+     * @Valid：    触发 Jakarta Validation 校验，
+     *             不通过则直接返回 400 + 错误信息，不会进入方法体
+     *
+     * @RequestBody：把 HTTP 请求体 JSON → 反序列化为 CreateProductRequest 对象
+     * 前端类比：
+     *   app.post('/api/products', (req, res) => {
+     *       const { name, price, ... } = req.body;  // ← @RequestBody 就是这一步
+     *       if (!name) return res.status(400)...      // ← @Valid 就是这一步
+     *   })
+     */
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)  // 返回 201 而不是默认的 200
+    public Product create(@Valid @RequestBody CreateProductRequest request) {
+        // 将 DTO 转为 Entity
+        Product product = new Product(
+                request.getName(),
+                request.getPrice(),
+                request.getDescription(),
+                request.getImageUrl(),
+                request.getStock()
+        );
+
+        // save()：新增时自动生成 id
+        return productRepository.save(product);
     }
 }

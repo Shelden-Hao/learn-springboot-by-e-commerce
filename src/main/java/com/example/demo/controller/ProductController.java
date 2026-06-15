@@ -1,10 +1,12 @@
 package com.example.demo.controller;
 
 import com.example.demo.dto.CreateProductRequest;
+import com.example.demo.dto.UpdateProductRequest;
 import com.example.demo.model.Product;
 import com.example.demo.repository.ProductRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -89,5 +91,58 @@ public class ProductController {
 
         // save()：新增时自动生成 id
         return productRepository.save(product);
+    }
+
+    /**
+     * PUT /api/products/{id} — 更新商品
+     *
+     * @Transactional：
+     *   把它下面的数据库操作包进一个事务。
+     *   查询 → 修改 → 保存，三步要么全成功，要么全失败。
+     *
+     *   跟前端怎么说？就像 Redux/React 的批处理：
+     *   如果你 setState 三次，React 会合并成一次渲染；
+     *   @Transactional 把多个 SQL 合并成一个原子操作。
+     *
+     * 流程：
+     *   1. findById → 从数据库查出原商品
+     *   2. applyUpdate → 用 DTO 的非 null 字段覆盖
+     *   3. save → 写回数据库（UPDATE SQL）
+     */
+    @PutMapping("/{id}")
+    @Transactional
+    public Product update(@PathVariable Long id,
+                          @Valid @RequestBody UpdateProductRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("商品不存在: id=" + id));
+
+        product.applyUpdate(
+                request.getName(),
+                request.getPrice(),
+                request.getDescription(),
+                request.getImageUrl(),
+                request.getStock()
+        );
+
+        // save()：id 已存在时执行 UPDATE 而非 INSERT
+        return productRepository.save(product);
+    }
+
+    /**
+     * DELETE /api/products/{id} — 删除商品
+     *
+     * @ResponseStatus(HttpStatus.NO_CONTENT)：
+     *   删除成功返回 204，无响应体。
+     *   这是 REST 标准做法——删除完了没什么好返回的。
+     */
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void delete(@PathVariable Long id) {
+        // 先查再删，不存在就抛异常
+        if (!productRepository.existsById(id)) {
+            throw new RuntimeException("商品不存在: id=" + id);
+        }
+        productRepository.deleteById(id);
     }
 }

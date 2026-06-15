@@ -69,6 +69,23 @@ public class Product {
         }
     }
 
+    /**
+     * 用 DTO 的值更新当前实体 — 只更新非 null 字段
+     *
+     * 为什么不用 setter 逐个赋值？
+     *   因为 UpdateProductRequest 所有字段都是可选的（允许 null），
+     *   直接把 null 赋值给 this.price 会把数据库里的价格清掉。
+     *   所以只有在字段非 null 时才覆盖原值。
+     */
+    public void applyUpdate(String name, BigDecimal price, String description,
+                            String imageUrl, Integer stock) {
+        if (name != null) this.name = name;
+        if (price != null) this.price = price;
+        if (description != null) this.description = description;
+        if (imageUrl != null) this.imageUrl = imageUrl;
+        if (stock != null) this.stock = stock;
+    }
+
     // ========== Getter / Setter ==========
 
     public Long getId() { return id; }

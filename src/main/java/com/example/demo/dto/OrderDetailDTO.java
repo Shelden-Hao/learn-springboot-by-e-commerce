@@ -26,7 +26,7 @@ public class OrderDetailDTO {
     private LocalDateTime createdAt;
 
     // ===== 来自 order_items + products 表（一对多嵌套） =====
-    private List<ItemDTO> items;
+    private List<ItemDTO> items; // 一个订单下的多个产品
 
     // ===== 内嵌 DTO：订单明细 + 商品信息 =====
     public static class ItemDTO {
@@ -34,7 +34,7 @@ public class OrderDetailDTO {
         private Long productId;
         private String productName;    // 来自 products 表
         private BigDecimal price;      // 下单时快照价格
-        private Integer quantity;
+        private Integer quantity; // 当前订单下某个产品的数量
 
         // Getter / Setter
         public Long getItemId() { return itemId; }

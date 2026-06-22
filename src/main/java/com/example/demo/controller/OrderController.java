@@ -4,6 +4,7 @@ import cn.dev33.satoken.annotation.SaCheckLogin;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.dto.CreateOrderRequest;
+import com.example.demo.dto.ErrorResponse;
 import com.example.demo.dto.OrderDetailDTO;
 import com.example.demo.exception.ProductNotFoundException;
 import com.example.demo.mapper.OrderItemMapper;
@@ -25,11 +26,11 @@ import java.util.List;
 
 /**
  * 订单控制器
- *
+ * <p>
  * 核心教学点：
- *   - 多表关联查询通过 XML Mapper（selectOrderDetail）
- *   - 动态 SQL 查询（searchOrders）
- *   - 下单事务：扣库存 → 生成订单号 → 插订单 + 订单明细
+ * - 多表关联查询通过 XML Mapper（selectOrderDetail）
+ * - 动态 SQL 查询（searchOrders）
+ * - 下单事务：扣库存 → 生成订单号 → 插订单 + 订单明细
  */
 @SaCheckLogin                  // 类级别：所有方法都需登录（双重保险）
 @RestController
@@ -50,15 +51,15 @@ public class OrderController {
 
     /**
      * POST /api/orders — 下单
-     *
+     * <p>
      * 流程：
-     *   1. 校验每个商品是否存在、库存是否充足
-     *   2. 计算总金额
-     *   3. 生成订单编号
-     *   4. 插入 orders 表
-     *   5. 批量插入 order_items 表
-     *   6. 扣减库存
-     *
+     * 1. 校验每个商品是否存在、库存是否充足
+     * 2. 计算总金额
+     * 3. 生成订单编号
+     * 4. 插入 orders 表
+     * 5. 批量插入 order_items 表
+     * 6. 扣减库存
+     * <p>
      * 整个方法包在 @Transactional 中，
      * 第 1~6 步任何一步失败 → 全部回滚
      */
@@ -106,7 +107,7 @@ public class OrderController {
 
     /**
      * GET /api/orders — 分页查询，支持动态条件筛选
-     *
+     * <p>
      * 调用的 searchOrders() 是 XML 中定义的动态 SQL（<where> + <if>）
      */
     @GetMapping
@@ -136,7 +137,7 @@ public class OrderController {
 
     /**
      * GET /api/orders/{id} — 订单详情（XML 多表 JOIN）
-     *
+     * <p>
      * 这是本课最核心的接口！
      * 调用的是 OrderMapper.xml 中的 selectOrderDetail，
      * 用 LEFT JOIN 三表联查 + <resultMap> 嵌套映射。
@@ -148,5 +149,33 @@ public class OrderController {
             throw new RuntimeException("订单不存在: id=" + id);
         }
         return detail;
+    }
+
+    /**
+     * 取消订单 + 库存回退
+     */
+    @PatchMapping("/{id}/cancel")
+    @Transactional // 事务
+    public Order cancel(@PathVariable Long id) {
+        // 查询订单是否存在，校验订单状态是否为 PENDING，不是则抛异常
+        Order order = orderMapper.selectById(id);
+        if (order == null || order.getStatus() != OrderStatus.PENDING) {
+            throw new RuntimeException("该订单不可被取消");
+        }
+        // 查出该订单所有的 items
+        OrderDetailDTO orderDetailDTO = orderMapper.selectOrderDetail(id);
+        for (OrderDetailDTO.ItemDTO item : orderDetailDTO.getItems()) {
+            Long productId = item.getProductId();
+            // 查询到商品
+            Product product = productMapper.selectById(productId);
+            // 加入库存
+            product.setStock(product.getStock() + item.getQuantity());
+            // 更新商品信息
+            productMapper.updateById(product);
+        }
+        order.setStatus(OrderStatus.CANCELLED);
+        orderMapper.updateById(order);
+        // 把更新后的 Order 对象返回，前端才知道现在是什么状态
+        return order;
     }
 }

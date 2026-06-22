@@ -201,4 +201,28 @@ public class OrderController {
         }
         return order;
     }
+
+    @PatchMapping("/{id}/ship")
+    @Transactional
+    public Order delivery(@PathVariable Long id) {
+        Order order = orderMapper.selectById(id);
+        if (order == null || order.getStatus() != OrderStatus.PAID) {
+            throw new RuntimeException("该订单不可发货，当前状态: " + order.getStatus());
+        }
+        order.setStatus(OrderStatus.SHIPPED);
+        orderMapper.updateById(order);
+        return order;
+    }
+
+    @PatchMapping("/{id}/complete")
+    @Transactional
+    public Order complete(@PathVariable Long id) {
+        Order order = orderMapper.selectById(id);
+        if (order == null || order.getStatus() != OrderStatus.SHIPPED) {
+            throw new RuntimeException("该订单不可收货，当前状态: " + order.getStatus());
+        }
+        order.setStatus(OrderStatus.COMPLETED);
+        orderMapper.updateById(order);
+        return order;
+    }
 }

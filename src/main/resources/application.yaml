@@ -14,6 +14,19 @@ spring:
     init:
       mode: always
 
+  # ========== Redis ==========
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  # ========== Spring Cache ==========
+  cache:
+    type: redis                 # 缓存后端：Redis（默认是 Simple/ConcurrentHashMap）
+    redis:
+      time-to-live: 600000      # 默认 TTL：10 分钟（毫秒）
+      cache-null-values: false  # 不缓存 null（防止缓存穿透）
+
 # ========== MyBatis-Plus ==========
 mybatis-plus:
   mapper-locations: classpath:mapper/**/*.xml

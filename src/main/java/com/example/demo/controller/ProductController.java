@@ -10,6 +10,8 @@ import com.example.demo.mapper.ProductMapper;
 import com.example.demo.model.Product;
 import com.example.demo.model.ProductStatus;
 import jakarta.validation.Valid;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -95,10 +97,18 @@ public class ProductController {
     /**
      * GET /api/products/{id}
      *
-     * selectById() → SELECT * FROM products WHERE id = ?
-     * 返回 null 表示没查到 → 抛异常 → GlobalExceptionHandler 拦截 → 404
+     * @Cacheable：Spring Cache 的核心注解
+     *   value = "product"   → 缓存名叫 "product"（在 Redis 中以 "product::" 为前缀）
+     *   key = "#id"         → 缓存 key 用 SpEL 表达式取方法参数，如 product::1
+     *
+     * 执行流程：
+     *   第 1 次请求 GET /api/products/1
+     *     → 查 Redis → 没命中 → 执行方法体（查 DB） → 把结果存 Redis
+     *   第 2 次请求 GET /api/products/1
+     *     → 查 Redis → 命中！ → 直接返回缓存值，不执行方法体（SQL 都没打印）
      */
     @GetMapping("/{id}")
+    @Cacheable(value = "product", key = "#id") // 先查缓存，有则跳过方法体（读操作）
     public Product getById(@PathVariable Long id) {
         Product product = productMapper.selectById(id);
         if (product == null) {
@@ -116,6 +126,7 @@ public class ProductController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
+    @CacheEvict(value = "product", allEntries = true) // 新增商品 → 清空所有 product 缓存，方法执行后清除缓存(写/删操作)
     public Product create(@Valid @RequestBody CreateProductRequest request) {
         Product product = new Product(
                 request.getName(),
@@ -137,6 +148,7 @@ public class ProductController {
      */
     @PutMapping("/{id}")
     @Transactional
+    @CacheEvict(value = "product", key = "#id")     // 更新 → 清除该商品的缓存
     public Product update(@PathVariable Long id,
                           @Valid @RequestBody UpdateProductRequest request) {
         Product product = productMapper.selectById(id);
@@ -164,6 +176,7 @@ public class ProductController {
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
+    @CacheEvict(value = "product", key = "#id")     // 删除 → 清除该商品的缓存
     public void delete(@PathVariable Long id) {
         Product product = productMapper.selectById(id);
         if (product == null) {
@@ -177,6 +190,7 @@ public class ProductController {
      */
     @PatchMapping("/{id}/status")
     @Transactional
+    @CacheEvict(value = "product", key = "#id")
     public Product toggleStatus(@PathVariable Long id,
                                  @RequestParam String action) {
         Product product = productMapper.selectById(id);

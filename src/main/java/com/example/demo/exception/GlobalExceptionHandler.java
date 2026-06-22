@@ -1,5 +1,6 @@
 package com.example.demo.exception;
 
+import cn.dev33.satoken.exception.NotRoleException;
 import com.example.demo.dto.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -104,5 +105,11 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)  // 500
     public ErrorResponse handleUnknown(Exception ex) {
         return new ErrorResponse(500, "服务器内部错误: " + ex.getMessage());
+    }
+
+    @ExceptionHandler(NotRoleException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleNotRole() {
+        return new ErrorResponse(403, "权限不足");
     }
 }

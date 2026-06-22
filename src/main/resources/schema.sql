@@ -1,5 +1,6 @@
 -- 建表：product 表
 -- MyBatis-Plus 不像 JPA 那样自动建表，需要手动写 SQL（或配 DDL 自动执行）
+-- docker compose down -v && docker compose up -d 之前用 Docker 启动的 MySQL，改完 schema.sql 后需要重建容器才能生效（-v 会删掉数据卷，所以重建后数据初始化脚本会重新执行）
 -- 这是真实项目的标准做法——DDL 由开发人员精确控制
 CREATE TABLE IF NOT EXISTS products (
     id           BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -37,5 +38,6 @@ CREATE TABLE IF NOT EXISTS users (
     username     VARCHAR(50)    NOT NULL UNIQUE COMMENT '用户名（登录账号）',
     password     VARCHAR(200)   NOT NULL COMMENT '密码（BCrypt 加密后的密文，永不明文存储）',
     nickname     VARCHAR(50)    DEFAULT '' COMMENT '昵称',
+    role VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '角色: USER-普通用户, ADMIN-管理员',
     created_at   TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间'
 );

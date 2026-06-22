@@ -6,6 +6,7 @@ import com.example.demo.dto.LoginRequest;
 import com.example.demo.dto.RegisterRequest;
 import com.example.demo.mapper.UserMapper;
 import com.example.demo.model.User;
+import com.example.demo.model.UserRole;
 import jakarta.validation.Valid;
 import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.http.HttpStatus;
@@ -63,7 +64,8 @@ public class AuthController {
         User user = new User(
                 request.getUsername(),
                 encodedPassword,
-                request.getNickname() != null ? request.getNickname() : request.getUsername()
+                request.getNickname() != null ? request.getNickname() : request.getUsername(),
+                UserRole.USER
         );
         userMapper.insert(user);
 
@@ -119,6 +121,9 @@ public class AuthController {
 
         // ③ Sa-Token 登录：生成 Token，建立会话
         StpUtil.login(user.getId());
+        // 这样 Sa-Token 的 @SaCheckRole("ADMIN") 才能识别
+        // 注意：这里不能存 user.getRole() 枚举值，因为 Sa-Token 的 @SaCheckRole("ADMIN") 内部会 "ADMIN".equals(session.get("role"))，这里必须存 ADMIN 字符串
+        StpUtil.getSession().set("role", user.getRole().name());
 
         // ④ 返回 Token 信息给前端
         SaTokenInfo tokenInfo = StpUtil.getTokenInfo();

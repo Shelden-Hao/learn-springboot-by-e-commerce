@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import cn.dev33.satoken.annotation.SaCheckRole;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -208,6 +209,7 @@ public class ProductController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Transactional
     @CacheEvict(value = "product", key = "#id")     // 删除 → 清除该商品的缓存
+    @SaCheckRole("ADMIN")
     public void delete(@PathVariable Long id) {
         Product product = productMapper.selectById(id);
         if (product == null) {

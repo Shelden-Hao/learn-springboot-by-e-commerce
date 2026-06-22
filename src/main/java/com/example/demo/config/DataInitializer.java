@@ -99,8 +99,8 @@ public class DataInitializer implements CommandLineRunner {
         // ===== 测试用户 =====
         // 密码 "123456" 的 BCrypt 密文（每次生成都不同，这是示例）
         String testPassword = BCrypt.hashpw("123456", BCrypt.gensalt());
-        userMapper.insert(new User("admin", testPassword, "管理员"));
-        userMapper.insert(new User("test", testPassword, "测试用户"));
+        userMapper.insert(new User("admin", testPassword, "管理员", UserRole.ADMIN));
+        userMapper.insert(new User("test", testPassword, "测试用户", UserRole.USER));
 
         System.out.println("  ✅ 用户 x" + userMapper.selectCount(null));
         System.out.println("✅ 全部数据初始化完成");

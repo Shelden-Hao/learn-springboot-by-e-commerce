@@ -25,15 +25,19 @@ public class User {
     @TableField("nickname")
     private String nickname;
 
+    @TableField("role")
+    private UserRole role;
+
     @TableField(value = "created_at", fill = FieldFill.INSERT)
     private LocalDateTime createdAt;
 
     public User() {}
 
-    public User(String username, String password, String nickname) {
+    public User(String username, String password, String nickname, UserRole role) {
         this.username = username;
         this.password = password;
         this.nickname = nickname;
+        this.role = role;
     }
 
     // ========== Getter / Setter ==========
@@ -49,6 +53,9 @@ public class User {
 
     public String getNickname() { return nickname; }
     public void setNickname(String nickname) { this.nickname = nickname; }
+
+    public UserRole getRole() { return role; }
+    public void setRole(UserRole role) { this.role = role; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

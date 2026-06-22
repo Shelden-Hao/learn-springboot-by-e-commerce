@@ -178,4 +178,21 @@ public class OrderController {
         // 把更新后的 Order 对象返回，前端才知道现在是什么状态
         return order;
     }
+
+    /**
+     * 订单确认付款
+     */
+    @PatchMapping("/{id}/pay")
+    @Transactional // 事务
+    public Order pay(@PathVariable Long id) {
+        Order order = orderMapper.selectById(id);
+        if (order == null || order.getStatus() != OrderStatus.PENDING) {
+            throw new RuntimeException("订单不可被支付");
+        }
+        // 付款逻辑。。。
+        order.setStatus(OrderStatus.PAID);
+        orderMapper.updateById(order);
+        // 真实业务中付款成功后才减库存，下单时不减库存
+        return order;
+    }
 }

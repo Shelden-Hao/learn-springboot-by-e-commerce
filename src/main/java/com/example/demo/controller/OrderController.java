@@ -10,10 +10,7 @@ import com.example.demo.exception.ProductNotFoundException;
 import com.example.demo.mapper.OrderItemMapper;
 import com.example.demo.mapper.OrderMapper;
 import com.example.demo.mapper.ProductMapper;
-import com.example.demo.model.Order;
-import com.example.demo.model.OrderItem;
-import com.example.demo.model.OrderStatus;
-import com.example.demo.model.Product;
+import com.example.demo.model.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -73,6 +70,9 @@ public class OrderController {
             Product product = productMapper.selectById(item.getProductId());
             if (product == null) {
                 throw new ProductNotFoundException(item.getProductId());
+            }
+            if (product.getStatus() == ProductStatus.OFF_SHELF) {
+                throw new RuntimeException("该商品已下架");
             }
             if (product.getStock() < item.getQuantity()) {
                 throw new RuntimeException("商品 [" + product.getName() + "] 库存不足，当前库存: " + product.getStock());

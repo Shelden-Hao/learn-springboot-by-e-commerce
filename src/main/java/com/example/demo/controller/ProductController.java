@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.demo.dto.ApiResponse;
 import com.example.demo.dto.CreateProductRequest;
 import com.example.demo.dto.StockCheckResponse;
 import com.example.demo.dto.UpdateProductRequest;
@@ -122,12 +123,12 @@ public class ProductController {
      */
     @GetMapping("/{id}")
     @Cacheable(value = "product", key = "#id") // 先查缓存，有则跳过方法体（读操作）
-    public Product getById(@PathVariable Long id) {
+    public ApiResponse<Product> getById(@PathVariable Long id) {
         Product product = productMapper.selectById(id);
         if (product == null) {
             throw new ProductNotFoundException(id);
         }
-        return product;
+        return ApiResponse.success(product);
     }
 
     @GetMapping("/{id}/check-stock")

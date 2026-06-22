@@ -86,9 +86,20 @@ public class ProductController {
     public IPage<Product> search(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Integer minPrice, // int 是基本类型，默认值就是 0，因此 int 不能和 required=false 配合使用，而 Integer 包装类型可为 null
+            @RequestParam(required = false) Integer maxPrice) {
 
         LambdaQueryWrapper<Product> wrapper = new LambdaQueryWrapper<>();
+        //只传 minPrice → 查价格 ≥ 该值的
+        //只传 maxPrice → 查价格 ≤ 该值的
+        if (minPrice != null) {
+            wrapper.ge(Product::getPrice, minPrice);
+        }
+        if (maxPrice != null) {
+            wrapper.le(Product::getPrice, maxPrice);
+        }
+        //都不传 → 和原来一样只按 keyword 搜
         wrapper.like(Product::getName, keyword)
                 .or()
                 .like(Product::getDescription, keyword);

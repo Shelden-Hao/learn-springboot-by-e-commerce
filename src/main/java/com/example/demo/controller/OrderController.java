@@ -97,8 +97,6 @@ public class OrderController {
                     product.getPrice()  // 快照当前价格
             ));
 
-            // ⑤ 扣减库存
-            product.setStock(product.getStock() - item.getQuantity());
             productMapper.updateById(product);
         }
 
@@ -193,6 +191,14 @@ public class OrderController {
         order.setStatus(OrderStatus.PAID);
         orderMapper.updateById(order);
         // 真实业务中付款成功后才减库存，下单时不减库存
+        OrderDetailDTO orderDetailDTO = orderMapper.selectOrderDetail(id);
+        for (OrderDetailDTO.ItemDTO item : orderDetailDTO.getItems()) {
+            Long productId = item.getProductId();
+            Product product = productMapper.selectById(productId);
+            // 扣减库存
+            product.setStock(product.getStock() - item.getQuantity());
+            productMapper.updateById(product);
+        }
         return order;
     }
 }

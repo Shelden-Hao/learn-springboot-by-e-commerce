@@ -13,11 +13,14 @@ import com.example.demo.mapper.OrderItemMapper;
 import com.example.demo.mapper.OrderMapper;
 import com.example.demo.mapper.ProductMapper;
 import com.example.demo.model.*;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -223,5 +226,33 @@ public class OrderController {
         order.setStatus(OrderStatus.COMPLETED);
         orderMapper.updateById(order);
         return order;
+    }
+
+    @GetMapping("/export")
+    public void export(HttpServletResponse response) throws IOException {
+        // 设置响应内容类型和响应头
+        response.setContentType("text/csv; charset=UTF-8");
+        response.setHeader("Content-Disposition", "attachment; filename=orders.csv");
+        // 获取响应输出流
+        OutputStream outputStream = response.getOutputStream();
+        outputStream.write(new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF}); // BOM: 让 Excel 正确识别 UTF-8
+        // 写表头
+        outputStream.write("订单编号,买家,金额,状态,创建时间\n".getBytes("UTF-8"));
+        // 查所有订单
+        List<Order> orders = orderMapper.selectList(null);
+
+        // 逐行写数据
+        for (Order order : orders) {
+            String line = String.join(",",
+                    order.getOrderNo(),                                        // 订单编号
+                    order.getBuyerName(),                                      // 买家
+                    order.getTotalAmount().toString(),                         // 金额
+                    order.getStatus().name(),                                  // 状态（枚举名）
+                    order.getCreatedAt().toLocalDate().toString()              // 日期（只要日期不要时分秒）
+            );
+            outputStream.write((line + "\n").getBytes("UTF-8"));
+        }
+
+        outputStream.flush();  // 确保数据全部刷到客户端
     }
 }

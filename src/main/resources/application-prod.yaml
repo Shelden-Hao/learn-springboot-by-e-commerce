@@ -1,0 +1,20 @@
+# ========== 生产环境配置 ==========
+
+spring:
+  data:
+    redis:
+      host: prod-redis.internal
+      port: 6379
+      password: ${REDIS_PASSWORD}       # ← 密码从环境变量取，不写死在文件里
+
+  datasource:
+    url: jdbc:mysql://prod-mysql.internal:3306/demo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: prod_user
+    password: ${MYSQL_PASSWORD}          # ← 同样从环境变量取
+
+file:
+  upload-dir: /data/uploads              # 生产环境用绝对路径
+
+logging:
+  level:
+    com.example.demo: warn               # 生产环境不打 debug 日志，减少 IO

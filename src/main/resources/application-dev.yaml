@@ -1,0 +1,21 @@
+# ========== 开发环境配置 ==========
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/demo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: demo_user
+    password: demo_pass
+
+# 上传目录（开发环境用相对路径）
+file:
+  upload-dir: ./uploads
+
+# 日志级别：开发时打印所有 SQL
+logging:
+  level:
+    com.example.demo: debug

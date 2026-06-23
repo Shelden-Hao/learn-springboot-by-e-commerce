@@ -1,6 +1,8 @@
 package com.example.demo.controller;
 
 import cn.dev33.satoken.annotation.SaCheckLogin;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.example.demo.dto.CreateOrderRequest;
@@ -115,22 +117,19 @@ public class OrderController {
             @RequestParam(required = false) String buyerName,
             @RequestParam(required = false) String status) {
 
-        // 注意：这里我们需要手动拼接分页，因为 XML 里的 searchOrders 不支持 Page 对象
-        // 示范方案：先查总数，再查当前页
-        // 实际项目中更推荐在 XML 里写分页查询，或使用 MyBatis-Plus 分页拦截器
-        List<Order> allOrders = orderMapper.searchOrders(buyerName, status);
+        LambdaQueryWrapper<Order> queryWrapper = new LambdaQueryWrapper<>();
+        if (buyerName != null && !buyerName.isEmpty()) {
+            queryWrapper.like(Order::getBuyerName, buyerName);
+        }
+        if (status != null && !status.isEmpty()) {
+            // 将前端传过来的 ?status=PAID 转为 OrderStatus.PAID
+            OrderStatus orderStatus = OrderStatus.valueOf(status.toUpperCase());
+            queryWrapper.eq(Order::getStatus, orderStatus);
+        }
+        queryWrapper.orderByDesc(Order::getCreatedAt);
 
-        // 手动分页（简化版，实际项目用 PageHelper 或 XML 分页更优雅）
-        int fromIndex = (page - 1) * size;
-        int toIndex = Math.min(fromIndex + size, allOrders.size());
-        List<Order> pageContent = allOrders.subList(
-                Math.min(fromIndex, allOrders.size()),
-                toIndex
-        );
-
-        Page<Order> result = new Page<>(page, size, allOrders.size());
-        result.setRecords(pageContent);
-        return result;
+        Page<Order> orderPage = new Page<>(page, size);
+        return orderMapper.selectPage(orderPage, queryWrapper);
     }
 
     /**

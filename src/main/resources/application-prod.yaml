@@ -8,7 +8,7 @@ spring:
       password: ${REDIS_PASSWORD}       # ← 密码从环境变量取，不写死在文件里
 
   datasource:
-    url: jdbc:mysql://prod-mysql.internal:3306/demo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://prod-mysql.internal:3306/demo_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
     username: prod_user
     password: ${MYSQL_PASSWORD}          # ← 同样从环境变量取
 

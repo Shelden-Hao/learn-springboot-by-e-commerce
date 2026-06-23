@@ -46,5 +46,9 @@ sa-token:
   # 是否输出 Sa-Token 的操作日志
   is-log: true
 
+# 图片上传配置
+file:
+  upload-dir: ./uploads
+
 server:
   port: 8080

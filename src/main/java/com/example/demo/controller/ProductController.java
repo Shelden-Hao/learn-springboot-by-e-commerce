@@ -18,6 +18,12 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.UUID;
 
 /**
  * 商品控制器 — MyBatis-Plus 版
@@ -237,6 +243,45 @@ public class ProductController {
             default -> throw new IllegalArgumentException("不支持的操作: " + action + "，请使用 on 或 off");
         }
 
+        productMapper.updateById(product);
+        return product;
+    }
+
+    /**
+     * 上传商品图片
+     *
+     * @param id   商品 id
+     * @param file 图片
+     */
+    @PostMapping("{id}/upload-image")
+    @CacheEvict(value = "product", key = "#id") // 改了 imageUrl 需要清缓存
+    @Transactional
+    public Product uploadImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) throws IOException {
+        Product product = productMapper.selectById(id);
+        if (product == null) {
+            throw new ProductNotFoundException(id);
+        }
+        // 确保上传目录存在
+        String uploadDir =  Paths.get("./uploads").toAbsolutePath().toString();
+        File dir = new File(uploadDir);
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+
+        // 生成唯一文件名（防止同名覆盖）
+        String originalName = file.getOriginalFilename();              // "图片.jpg"
+        String extension = originalName.substring(originalName.lastIndexOf(".")); // ".jpg"
+        String newFileName = UUID.randomUUID() + extension;            // "a1b2c3d4.jpg"
+
+        // 保存文件到磁盘
+        File targetFile = new File(uploadDir, newFileName);
+        file.transferTo(targetFile);
+
+        // 更新商品 url
+        // 存的 ./uploads/abc.jpg 是文件系统路径，但 WebConfig 的资源映射是 /uploads/** 对接到 ./uploads/ 目录。
+        // 浏览器访问的是 http://localhost:8080/uploads/abc.jpg，所以数据库里应该存 /uploads/abc.jpg
+        String productUrl = "/uploads/" + newFileName;
+        product.setImageUrl(productUrl);
         productMapper.updateById(product);
         return product;
     }
